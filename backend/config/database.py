@@ -24,12 +24,33 @@ def seed_if_empty():
     db.session.add_all([admin, teacher_user, student_user])
     db.session.flush()
 
-    teacher = Teacher(user_id=teacher_user.id, employee_code='T001', full_name='Dr. S. Rao', subject='Mathematics')
+    teacher = Teacher(
+        user_id=teacher_user.id,
+        employee_code='T001',
+        full_name='Dr. S. Rao',
+        subject='Mathematics',
+        avatar_url='https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150'
+    )
     classroom = ClassRoom(name='10-A', section='A', class_teacher_id=None)
     subject = Subject(name='Mathematics', code='MATH')
-    student = Student(user_id=student_user.id, roll_number='1001', class_name='10-A', full_name='Rahul Sharma')
+    student = Student(
+        user_id=student_user.id,
+        roll_number='1001',
+        class_name='10-A',
+        full_name='Rahul Sharma',
+        avatar_url='https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=150'
+    )
     db.session.add_all([teacher, classroom, subject, student])
     db.session.flush()
+
+    fee = Fee(
+        student_id=student.id,
+        amount_due=5000,
+        amount_paid=0,
+        due_date=date(2026, 8, 30),
+        status='pending'
+    )
+    db.session.add(fee)
 
     attendance = Attendance(
         student_id=student.id,
@@ -76,6 +97,9 @@ def create_app():
     from routes.settings import settings_bp
     from routes.students import students_bp
     from routes.teachers import teachers_bp
+    from routes.classes import classes_bp
+    from routes.subjects import subjects_bp
+    from routes.feedback import feedback_bp
 
     app.register_blueprint(auth_bp, url_prefix='/api/auth')
     app.register_blueprint(students_bp, url_prefix='/api/students')
@@ -87,6 +111,9 @@ def create_app():
     app.register_blueprint(fees_bp, url_prefix='/api/fees')
     app.register_blueprint(reports_bp, url_prefix='/api/reports')
     app.register_blueprint(settings_bp, url_prefix='/api/settings')
+    app.register_blueprint(classes_bp, url_prefix='/api/classes')
+    app.register_blueprint(subjects_bp, url_prefix='/api/subjects')
+    app.register_blueprint(feedback_bp, url_prefix='/api/feedback')
 
     with app.app_context():
         from models import Attendance, ClassRoom, Fee, Mark, Student, Subject, Teacher, Timetable, User

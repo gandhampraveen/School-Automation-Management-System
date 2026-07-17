@@ -10,3 +10,5 @@ class Student(db.Model):
     class_name = db.Column(db.String(50), nullable=False)
     full_name = db.Column(db.String(150), nullable=False)
     status = db.Column(db.String(20), default='active')
+    avatar_url = db.Column(db.String(255), nullable=True)
+

@@ -14,6 +14,9 @@ import FeeManagement from './pages/FeeManagement';
 import Reports from './pages/Reports';
 import Settings from './pages/Settings';
 import NotFound from './pages/NotFound';
+import LandingPage from './pages/LandingPage';
+import Register from './components/Register';
+import FeedbackManagement from './pages/FeedbackManagement';
 import { api } from './services/api';
 import './App.css';
 
@@ -48,6 +51,11 @@ function App() {
     }
   };
 
+  const handleLoginSuccess = (user) => {
+    localStorage.setItem('schoolUser', JSON.stringify(user));
+    setCurrentUser(user);
+  };
+
   const handleLogout = () => {
     localStorage.removeItem('schoolUser');
     setCurrentUser(null);
@@ -65,7 +73,17 @@ function App() {
               currentUser ? (
                 <Navigate to={roleHome} />
               ) : (
-                <Login onLogin={handleLogin} />
+                <Login onLogin={handleLogin} onLoginSuccess={handleLoginSuccess} />
+              )
+            } 
+          />
+          <Route 
+            path="/register" 
+            element={
+              currentUser ? (
+                <Navigate to={roleHome} />
+              ) : (
+                <Register onLoginSuccess={handleLoginSuccess} />
               )
             } 
           />
@@ -110,6 +128,10 @@ function App() {
             element={currentUser?.role === 'admin' ? <PageShell user={currentUser} onLogout={handleLogout} title="Reports"><Reports /></PageShell> : <Navigate to="/login" />}
           />
           <Route
+            path="/admin/feedback"
+            element={currentUser?.role === 'admin' ? <PageShell user={currentUser} onLogout={handleLogout} title="Feedback Reviews"><FeedbackManagement /></PageShell> : <Navigate to="/login" />}
+          />
+          <Route
             path="/admin/settings"
             element={currentUser?.role === 'admin' ? <PageShell user={currentUser} onLogout={handleLogout} title="Settings"><Settings /></PageShell> : <Navigate to="/login" />}
           />
@@ -133,7 +155,7 @@ function App() {
               )
             } 
           />
-          <Route path="/" element={<Navigate to="/login" />} />
+          <Route path="/" element={<LandingPage />} />
           <Route path="*" element={<NotFound user={currentUser} onLogout={handleLogout} />} />
         </Routes>
       </div>

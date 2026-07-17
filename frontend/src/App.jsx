@@ -1,129 +1,166 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { BrowserRouter, Navigate, NavLink, Route, Routes } from 'react-router-dom';
+import React, { useEffect, useState } from 'react';
+import { BrowserRouter as Router, Navigate, Route, Routes } from 'react-router-dom';
+import Login from './components/Login';
+import StudentDashboard from './components/StudentDashboard';
+import TeacherDashboard from './components/TeacherDashboard';
+import PageShell from './pages/PageShell';
+import AdminDashboard from './pages/AdminDashboard';
+import StudentManagement from './pages/StudentManagement';
+import TeacherManagement from './pages/TeacherManagement';
+import ClassManagement from './pages/ClassManagement';
+import SubjectManagement from './pages/SubjectManagement';
+import Timetable from './pages/Timetable';
+import FeeManagement from './pages/FeeManagement';
+import Reports from './pages/Reports';
+import Settings from './pages/Settings';
+import NotFound from './pages/NotFound';
+import LandingPage from './pages/LandingPage';
+import Register from './components/Register';
+import FeedbackManagement from './pages/FeedbackManagement';
 import { api } from './services/api';
+import './App.css';
 
-const navItems = [
-  { to: '/admin', label: 'Admin' },
-  { to: '/students', label: 'Students' },
-  { to: '/teachers', label: 'Teachers' },
-  { to: '/attendance', label: 'Attendance' },
-  { to: '/marks', label: 'Marks' },
-  { to: '/timetable', label: 'Timetable' },
-  { to: '/fees', label: 'Fees' },
-  { to: '/reports', label: 'Reports' },
-  { to: '/settings', label: 'Settings' },
-];
-
-function Layout({ children, user, onLogout }) {
-  return (
-    <div className="shell">
-      <aside className="sidebar">
-        <h1>School Automation</h1>
-        <p>Frontend</p>
-        <nav>
-          {navItems.map((item) => (
-            <NavLink key={item.to} to={item.to} className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
-              {item.label}
-            </NavLink>
-          ))}
-        </nav>
-      </aside>
-      <main className="content">
-        <header className="topbar">
-          <div>
-            <strong>{user?.name || 'Guest'}</strong>
-            <p>{user?.role || 'Not signed in'}</p>
-          </div>
-          <button onClick={onLogout}>Logout</button>
-        </header>
-        {children}
-      </main>
-    </div>
-  );
-}
-
-function PlaceholderPage({ title, description }) {
-  return (
-    <section className="panel">
-      <h2>{title}</h2>
-      <p>{description}</p>
-    </section>
-  );
-}
-
-function Login({ onLogin }) {
-  const [role, setRole] = useState('student');
-  const [identifier, setIdentifier] = useState('1001');
-  const [password, setPassword] = useState('password');
-  const [error, setError] = useState('');
-
-  const submit = async (event) => {
-    event.preventDefault();
-    setError('');
-    try {
-      await onLogin({ identifier, password, role });
-    } catch (err) {
-      setError(err.message);
-    }
-  };
-
-  return (
-    <div className="login-card">
-      <h1>School Automation</h1>
-      <p>Sign in to continue</p>
-      <form onSubmit={submit}>
-        <select value={role} onChange={(event) => setRole(event.target.value)}>
-          <option value="admin">Admin</option>
-          <option value="teacher">Teacher</option>
-          <option value="student">Student</option>
-        </select>
-        <input value={identifier} onChange={(event) => setIdentifier(event.target.value)} placeholder="Username / Roll No / Teacher ID" />
-        <input value={password} onChange={(event) => setPassword(event.target.value)} type="password" placeholder="Password" />
-        <button type="submit">Login</button>
-      </form>
-      {error ? <p className="error">{error}</p> : null}
-    </div>
-  );
-}
-
-export default function App() {
-  const [user, setUser] = useState(() => {
-    const raw = localStorage.getItem('frontendUser');
-    return raw ? JSON.parse(raw) : null;
-  });
+function App() {
+  const [currentUser, setCurrentUser] = useState(null);
 
   useEffect(() => {
-    if (user) {
-      localStorage.setItem('frontendUser', JSON.stringify(user));
-    } else {
-      localStorage.removeItem('frontendUser');
+    const savedUser = localStorage.getItem('schoolUser');
+    if (savedUser) {
+      try {
+        const user = JSON.parse(savedUser);
+        setCurrentUser(user);
+      } catch (e) {
+        localStorage.removeItem('schoolUser');
+      }
     }
-  }, [user]);
+  }, []);
 
-  const homePath = useMemo(() => (user?.role === 'admin' ? '/admin' : '/students'), [user]);
+  const handleLogin = async (identifier, password, userType, setError) => {
+    try {
+      const authResponse = await api.login({ identifier, password, role: userType });
+      const user = {
+        ...authResponse.user,
+        token: authResponse.token,
+      };
 
-  const handleLogin = async (credentials) => {
-    const result = await api.login(credentials);
-    setUser({ ...result.user, token: result.token });
+      localStorage.setItem('schoolUser', JSON.stringify(user));
+      setCurrentUser(user);
+      setError('');
+    } catch (error) {
+      setError(error.message || 'Invalid credentials. Please try again.');
+    }
   };
 
-  const handleLogout = () => setUser(null);
+  const handleLoginSuccess = (user) => {
+    localStorage.setItem('schoolUser', JSON.stringify(user));
+    setCurrentUser(user);
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('schoolUser');
+    setCurrentUser(null);
+  };
+
+  const roleHome = currentUser?.role === 'teacher' ? '/teacher' : currentUser?.role === 'admin' ? '/admin' : '/student';
 
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/login" element={user ? <Navigate to={homePath} /> : <Login onLogin={handleLogin} />} />
-        <Route path="/admin" element={user ? <Layout user={user} onLogout={handleLogout}><PlaceholderPage title="Admin Dashboard" description="Full admin workspace ready for backend data." /></Layout> : <Navigate to="/login" />} />
-        <Route path="/students" element={user ? <Layout user={user} onLogout={handleLogout}><PlaceholderPage title="Student Management" description="Connect student CRUD endpoints here." /></Layout> : <Navigate to="/login" />} />
-        <Route path="/teachers" element={user ? <Layout user={user} onLogout={handleLogout}><PlaceholderPage title="Teacher Management" description="Teacher list and assignments live here." /></Layout> : <Navigate to="/login" />} />
-        <Route path="/attendance" element={user ? <Layout user={user} onLogout={handleLogout}><PlaceholderPage title="Attendance" description="Attendance monitoring and entry screen." /></Layout> : <Navigate to="/login" />} />
-        <Route path="/marks" element={user ? <Layout user={user} onLogout={handleLogout}><PlaceholderPage title="Marks" description="Marks management and grading views." /></Layout> : <Navigate to="/login" />} />
-        <Route path="/timetable" element={user ? <Layout user={user} onLogout={handleLogout}><PlaceholderPage title="Timetable" description="Weekly schedule view." /></Layout> : <Navigate to="/login" />} />
-        <Route path="/fees" element={user ? <Layout user={user} onLogout={handleLogout}><PlaceholderPage title="Fee Management" description="Fees, dues, and receipts." /></Layout> : <Navigate to="/login" />} />
-        <Route path="/reports" element={user ? <Layout user={user} onLogout={handleLogout}><PlaceholderPage title="Reports" description="Analytics and summaries." /></Layout> : <Navigate to="/login" />} />
-        <Route path="/settings" element={user ? <Layout user={user} onLogout={handleLogout}><PlaceholderPage title="Settings" description="System configuration." /></Layout> : <Navigate to="/login" />} />
-        <Route path="*" element={<Navigate to={user ? homePath : '/login'} />} />
-      </Routes>
-    </BrowserRouter>
+    <Router>
+      <div className="App">
+        <Routes>
+          <Route 
+            path="/login" 
+            element={
+              currentUser ? (
+                <Navigate to={roleHome} />
+              ) : (
+                <Login onLogin={handleLogin} onLoginSuccess={handleLoginSuccess} />
+              )
+            } 
+          />
+          <Route 
+            path="/register" 
+            element={
+              currentUser ? (
+                <Navigate to={roleHome} />
+              ) : (
+                <Register onLoginSuccess={handleLoginSuccess} />
+              )
+            } 
+          />
+          <Route
+            path="/admin"
+            element={
+              currentUser?.role === 'admin' ? (
+                <PageShell user={currentUser} onLogout={handleLogout} title="Admin Dashboard">
+                  <AdminDashboard />
+                </PageShell>
+              ) : (
+                <Navigate to="/login" />
+              )
+            }
+          />
+          <Route
+            path="/admin/students"
+            element={currentUser?.role === 'admin' ? <PageShell user={currentUser} onLogout={handleLogout} title="Student Management"><StudentManagement /></PageShell> : <Navigate to="/login" />}
+          />
+          <Route
+            path="/admin/teachers"
+            element={currentUser?.role === 'admin' ? <PageShell user={currentUser} onLogout={handleLogout} title="Teacher Management"><TeacherManagement /></PageShell> : <Navigate to="/login" />}
+          />
+          <Route
+            path="/admin/classes"
+            element={currentUser?.role === 'admin' ? <PageShell user={currentUser} onLogout={handleLogout} title="Class Management"><ClassManagement /></PageShell> : <Navigate to="/login" />}
+          />
+          <Route
+            path="/admin/subjects"
+            element={currentUser?.role === 'admin' ? <PageShell user={currentUser} onLogout={handleLogout} title="Subject Management"><SubjectManagement /></PageShell> : <Navigate to="/login" />}
+          />
+          <Route
+            path="/admin/timetable"
+            element={currentUser?.role === 'admin' ? <PageShell user={currentUser} onLogout={handleLogout} title="Timetable"><Timetable /></PageShell> : <Navigate to="/login" />}
+          />
+          <Route
+            path="/admin/fees"
+            element={currentUser?.role === 'admin' ? <PageShell user={currentUser} onLogout={handleLogout} title="Fee Management"><FeeManagement /></PageShell> : <Navigate to="/login" />}
+          />
+          <Route
+            path="/admin/reports"
+            element={currentUser?.role === 'admin' ? <PageShell user={currentUser} onLogout={handleLogout} title="Reports"><Reports /></PageShell> : <Navigate to="/login" />}
+          />
+          <Route
+            path="/admin/feedback"
+            element={currentUser?.role === 'admin' ? <PageShell user={currentUser} onLogout={handleLogout} title="Feedback Reviews"><FeedbackManagement /></PageShell> : <Navigate to="/login" />}
+          />
+          <Route
+            path="/admin/settings"
+            element={currentUser?.role === 'admin' ? <PageShell user={currentUser} onLogout={handleLogout} title="Settings"><Settings /></PageShell> : <Navigate to="/login" />}
+          />
+          <Route 
+            path="/student" 
+            element={
+              currentUser?.role === 'student' ? (
+                <StudentDashboard user={currentUser} onLogout={handleLogout} />
+              ) : (
+                <Navigate to="/login" />
+              )
+            } 
+          />
+          <Route 
+            path="/teacher" 
+            element={
+              currentUser?.role === 'teacher' ? (
+                <TeacherDashboard user={currentUser} onLogout={handleLogout} />
+              ) : (
+                <Navigate to="/login" />
+              )
+            } 
+          />
+          <Route path="/" element={<LandingPage />} />
+          <Route path="*" element={<NotFound user={currentUser} onLogout={handleLogout} />} />
+        </Routes>
+      </div>
+    </Router>
   );
 }
+
+export default App;

@@ -7,3 +7,5 @@ from .subject import Subject
 from .teacher import Teacher
 from .timetable import Timetable
 from .user import User
+from .feedback import Feedback
+

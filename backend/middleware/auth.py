@@ -9,7 +9,15 @@ def role_required(*allowed_roles):
         @wraps(route_handler)
         def wrapped(*args, **kwargs):
             verify_jwt_in_request()
-            identity = get_jwt_identity() or {}
+            identity_raw = get_jwt_identity()
+            import json
+            if isinstance(identity_raw, str):
+                try:
+                    identity = json.loads(identity_raw)
+                except json.JSONDecodeError:
+                    identity = {}
+            else:
+                identity = identity_raw or {}
             if identity.get('role') not in allowed_roles:
                 return jsonify({'message': 'Forbidden'}), 403
             return route_handler(*args, **kwargs)

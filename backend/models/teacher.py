@@ -9,3 +9,5 @@ class Teacher(db.Model):
     employee_code = db.Column(db.String(50), unique=True, nullable=False)
     full_name = db.Column(db.String(150), nullable=False)
     subject = db.Column(db.String(100), nullable=False)
+    avatar_url = db.Column(db.String(255), nullable=True)
+
