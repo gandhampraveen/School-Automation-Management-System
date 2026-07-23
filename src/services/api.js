@@ -1,6 +1,6 @@
 const API_BASE_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? '/api' : 'http://127.0.0.1:5000/api');
 
-async function request(path, options = {}, retries = 3, delayMs = 2000) {
+async function request(path, options = {}, retries = 5, delayMs = 3000) {
   const storedUser = localStorage.getItem('schoolUser');
   const token = storedUser ? JSON.parse(storedUser).token : null;
 
