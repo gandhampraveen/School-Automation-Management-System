@@ -1,25 +1,37 @@
 const API_BASE_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? '/api' : 'http://127.0.0.1:5000/api');
 
-async function request(path, options = {}) {
+async function request(path, options = {}, retries = 3, delayMs = 2000) {
   const storedUser = localStorage.getItem('schoolUser');
   const token = storedUser ? JSON.parse(storedUser).token : null;
 
-  const response = await fetch(`${API_BASE_URL}${path}`, {
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...(options.headers || {}),
-    },
-    ...options,
-  });
+  for (let attempt = 0; attempt < retries; attempt++) {
+    try {
+      const response = await fetch(`${API_BASE_URL}${path}`, {
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          ...(options.headers || {}),
+        },
+        ...options,
+      });
 
-  const payload = await response.json().catch(() => ({}));
+      const payload = await response.json().catch(() => ({}));
 
-  if (!response.ok) {
-    throw new Error(payload.message || 'Request failed');
+      if (!response.ok) {
+        throw new Error(payload.message || 'Request failed');
+      }
+
+      return payload;
+    } catch (err) {
+      if (attempt === retries - 1) {
+        if (err.message === 'Failed to fetch' || err.name === 'TypeError') {
+          throw new Error('Server is waking up on Render. Please wait 15 seconds and try again.');
+        }
+        throw err;
+      }
+      await new Promise((resolve) => setTimeout(resolve, delayMs));
+    }
   }
-
-  return payload;
 }
 
 export const api = {
